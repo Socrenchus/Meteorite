@@ -1,0 +1,25 @@
+<head>
+  <title>meteorite</title>
+  <!--<script src="src/ace.js" type="text/javascript" charset="utf-8"></script>-->
+</head>
+
+<body>
+  {{> editors}}
+  {{> file_list}}
+</body>
+
+<template name="editors">
+  {{#each editors}}
+    {{> editor}}
+  {{/each}}
+</template>
+
+<template name="editor">
+  <textarea name="{{number}}">{{{text}}}</textarea>
+</template>
+
+<template name="file_list">
+  {{#each files}}
+    <li><a href='/edit/{{filename}}'>{{filename}}</a></li>
+  {{/each}}
+</template>
