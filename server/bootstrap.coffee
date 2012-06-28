@@ -22,14 +22,9 @@ Meteor.startup( ->
       hidden = false
       for a in file.split('/')
         hidden ||= (a[0] == '.' && a[1] != '.')
-      unless hidden
-        i = 0
-        for line in readFile(file).split('\n')
-          MeteoriteDocuments.insert(
-            filename: file
-            text: line
-            number: i
-          )
-          i++
+      MeteoriteDocuments.insert(
+        filename: file
+        content: readFile(file)
+      ) unless hidden
     
 )

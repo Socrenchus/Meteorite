@@ -24,18 +24,13 @@ class Meteorite
 
   dispatch: (args...) =>
     delayedWriteFile = _.debounce(writeFile, 5000)
-    filename = ''
     switch @method
       when 'insert'
-        filename = args[0].filename
+        delayedWriteFile( args[0].filename, args[0].content )
       when 'update'
-        filename = args[1].filename
+        delayedWriteFile( args[1].filename, args[1].content )
       when 'remove'
-        filename = args[0].filename
-
-    if filename?
-      file_text = (a.text for a in MeteoriteDocuments.find( 'filename': filename ).fetch()).join('\n')
-      delayedWriteFile( filename, file_text )
+        deleteFile( args[0].filename )
 
     @default.apply(@, args)
 
@@ -44,7 +39,7 @@ Meteor.publish('code_file', (filename) ->
 )
 
 Meteor.publish('code_filenames', ->
-  return MeteoriteDocuments.find( {number: 0}, { fields: {filename: 1} } )
+  return MeteoriteDocuments.find( {}, { fields: {filename: 1} } )
 )
 
 Meteor.startup( ->

@@ -14,66 +14,29 @@ _.extend( Template.editors,
   editors: ->
     file = Session.get( 'current_file' )
     file = root_path + file if file?
-    return MeteoriteDocuments.find('filename': file, {'sort': {'number':1}}) if file?
+    return MeteoriteDocuments.find('filename': file) if file?
 )
 
 _.extend( Template.editor,
-  text: -> @text
-  number: -> @number
+  content: -> @content
   events: {
     #editing
-    'keydown textarea': (event) ->
-      if event.keyIdentifier in ['Up', 'Down', 'Enter']
-          event.preventDefault()
-    'keyup textarea': (event) ->
+    'keydown #input': (event) ->
       if not event.isImmediatePropagationStopped()
-        
-        shift_lines = (start, ammount) =>
-          rest = MeteoriteDocuments.find({'filename': @filename, 'number':{'$gt':start}}, {'sort': {'number':1}}).fetch()
-          for d in rest
-            d.number += ammount
-            MeteoriteDocuments.update(d._id, d)
-
-        switch event.keyIdentifier
-          when 'Up'
-            pos = $(event.target).caret().start
-            current = $(event.target).blur()
-            prev = current.prev().caret(pos,pos)
-          when 'Down'
-            pos = $(event.target).caret().start
-            current = $(event.target).blur()
-            next = current.next().caret(pos,pos)
-          when 'Left'
-            caret = $(event.target).caret()
-            if caret.start == 0
-              $(event.target).prev().caret(100,100)
-          when 'Right'
-            caret = $(event.target).caret()
-            unless caret.end < @text.length
-              $(event.target).next().caret(0,0)
-          when 'Enter'
-            caret = $(event.target).caret()
-            $(event.target).blur()
-            shift_lines(@number, 1)
-            MeteoriteDocuments.insert({'filename': @filename, 'number':@number+1, 'text':@text[caret.end..]})
-            @text = @text[..caret.start-1]
-            MeteoriteDocuments.update(@_id, @)
-            Meteor.flush()
-            $(event.target).next().caret(0,0)
-          when 'U+0008'
-            caret = $(event.target).unbind().caret()
-            if caret.start == 0
-              prev = MeteoriteDocuments.findOne({'filename': @filename, 'number':@number-1})
-              prev.text += @text[caret.end-1..]
-              $(event.target).prev().caret(prev.text.length,prev.text.length)
-              MeteoriteDocuments.update(prev._id, prev)
-              MeteoriteDocuments.remove(@_id)
-              shift_lines(@number, -1)
-              Meteor.flush()
-          else
-            @text = event.target.value
-            MeteoriteDocuments.update(@_id, @)
-            Meteor.flush()
+        event.preventDefault()
+        s = String.fromCharCode(event.which)
+        unless event.shiftKey
+          s = s.toLowerCase()
+        @content = @content[..@carot.start-1]+s+@content[@carot.end..]
+        @carot.start = @carot.end = @carot.start+1
+        MeteoriteDocuments.update(@_id, @)
+        Meteor.flush()
+        event.stopImmediatePropagation()
+    'mouseup textarea[name=\'editor\']': (event) ->
+      if not event.isImmediatePropagationStopped()
+        @carot = $(event.target).caret()
+        $(event.target).blur()
+        $('#input').focus()
         event.stopImmediatePropagation()
   }
 )
@@ -81,7 +44,6 @@ _.extend( Template.editor,
 _.extend( Template.file_list,
   files: ->
     results = MeteoriteDocuments.find( {}, { fields: {filename: 1} } ).fetch()
-    dedup = {}
     return ( {filename: r.filename[root_path.length+1..]} for r in results )
 )
 
