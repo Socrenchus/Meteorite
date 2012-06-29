@@ -2,6 +2,7 @@
 Changes = new Meteor.Collection("changes")
 
 uuid = Meteor.uuid()
+Session.set( 'show_file_list', true)
 
 # Subscriptions
 Meteor.subscribe( 'code_filenames' )
@@ -12,6 +13,7 @@ Meteor.autosubscribe( ->
 # Templates
 ##
 _.extend( Template.file_list,
+  show: -> Session.get('show_file_list')
   files: ->
     results = Changes.find( {}, { fields: {filename: 1} } ).fetch()
     uniq = {}
@@ -22,11 +24,15 @@ _.extend( Template.file_list,
 
 # Code editor
 
-init = (filename) ->
-  ta = document.getElementById("ta")
-  onChangeEnabled = true
-  onChange = (m, evt) ->
-    # tron.log('onChange:', m, evt)
+filename = ''
+mimetype = null
+m = ''
+on_change_enabled = true
+ta = null
+init = ->
+  ta = document.getElementById("code")
+  on_change = (m, evt) ->
+    #tron.log('on_change:', m, evt)
     while evt
       Changes.insert(
         filename: filename
@@ -35,21 +41,48 @@ init = (filename) ->
         text: evt.text
         from: evt.from
         to: evt.to
-      )
-  m = CodeMirror.fromTextArea(ta,{mode: "text/x-coffeescript", electricChars: false, indentWithTabs: false, tabSize: 2, smartIndent: true, lineNumbers: true, onChangeEnabled: onChange})
+      ) if on_change_enabled
+      evt = evt.next
+  CodeMirror.commands.autocomplete = (cm) ->
+    CodeMirror.simpleHint(cm, CodeMirror.javascriptHint)
+  CodeMirror.commands.open_file = (cm) ->
+    window.location = '/'
+  CodeMirror.commands.save_file = (cm) ->
+    Meteor.call('save_file_text', filename, m.getValue())
+  CodeMirror.modeURL = '/mode/%N/%N.js'
+  m = CodeMirror.fromTextArea(ta,
+    electricChars: false
+    indentWithTabs: false
+    tabSize: 2
+    smartIndent: true
+    lineNumbers: true
+    autoFocus: true
+    extraKeys: {
+      "Ctrl-Space": "autocomplete"
+      "Esc": "open_file"
+      "Cmd-'s'": "save_file"
+      "Ctrl-'s'": "save_file"
+    }
+    onChange: on_change
+  )
   m.focus()
   m.setSelection({line:0, ch:0}, {line:m.lineCount(), ch:0})
-  changes = Changes.find({'filename':filename}, {sort: {date: 1}})
 
+reload = ->
+  changes = Changes.find({'filename':filename}, {sort: {date: 1}})
+  
+  for n in CodeMirror.listMIMEs()
+    if mimetype?
+      m.setOption('mode', n.mode) if n.mime is mimetype
+    
   # execute the modification on the mirror
   exec = (evt, mirror) ->
-    onChangeEnabled = false
+    on_change_enabled = false
     try
-      unless evt.uuid is uuid
+      if (evt.uuid != uuid)
         mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
     finally
-      Meteor.call('save_file_text', filename, m.getValue())
-      onChangeEnabled = true
+      on_change_enabled = true
 
   date = 0
   changes.forEach( (ch) ->
@@ -71,7 +104,16 @@ class Router extends Backbone.Router
 
   edit_file: (path) ->
     Session.set( 'current_file', path )
-    init(root_path + path)
+    filename = root_path + path
+    Meteor.call( 'get_mime_type', filename, (e, r) -> 
+      mimetype = r
+      _.once( init )()
+      reload()
+      $(ta).parent().show()
+      Session.set('show_file_list', false)
+    )
+
+    
 
 Router = new Router()
 Meteor.startup( ->

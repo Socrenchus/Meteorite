@@ -6,6 +6,8 @@ writeFile = (filename, content) ->
           tron.log(err)
   )
 
+delayedWriteFile = _.throttle(writeFile, 2000)
+
 readFile = (filename) ->
   return __meteor_bootstrap__.require('fs').readFileSync(filename,'utf8')
 
@@ -25,6 +27,7 @@ Meteor.publish('code_filenames', ->
 
 Meteor.methods(
   save_file_text: (filename, text) ->
-    delayedWriteFile = _.throttle(writeFile, 2000)
     delayedWriteFile( filename, text )
+  get_mime_type: (filename) ->
+    return __meteor_bootstrap__.require('mime').lookup(filename)
 )
