@@ -25,6 +25,6 @@ Meteor.publish('code_filenames', ->
 
 Meteor.methods(
   save_file_text: (filename, text) ->
-    delayedWriteFile = _.debounce(writeFile, 5000)
+    delayedWriteFile = _.throttle(writeFile, 2000)
     delayedWriteFile( filename, text )
 )
