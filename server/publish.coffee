@@ -15,25 +15,6 @@ deleteFile = (filename) ->
       tron.error(err)
   )
 
-class Meteorite
-  constructor: (@method) ->
-    @default =
-      Meteor.default_server.method_handlers["/meteorite/#{@method}"]
-    Meteor.default_server.method_handlers["/meteorite/#{@method}"] =
-      @dispatch
-
-  dispatch: (args...) =>
-    delayedWriteFile = _.debounce(writeFile, 5000)
-    switch @method
-      when 'insert'
-        delayedWriteFile( args[0].filename, args[0].content )
-      when 'update'
-        delayedWriteFile( args[1].filename, args[1].content )
-      when 'remove'
-        deleteFile( args[0].filename )
-
-    @default.apply(@, args)
-
 Meteor.publish('code_file', (filename) ->
   return Changes.find( 'filename': filename )
 )
@@ -42,7 +23,8 @@ Meteor.publish('code_filenames', ->
   return Changes.find( {}, { fields: {filename: 1} } )
 )
 
-Meteor.startup( ->
-  for method in ['insert','update','remove']
-    m = new Meteorite(method)
+Meteor.methods(
+  save_file_text: (filename, text) ->
+    delayedWriteFile = _.debounce(writeFile, 5000)
+    delayedWriteFile( filename, text )
 )

@@ -47,6 +47,7 @@ _.extend( Template.file_list,
         mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
       }
     } finally {
+      Meteor.call('save_file_text', filename, m.getValue())
       onChangeEnabled = true
     }
   }
