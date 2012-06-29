@@ -1,4 +1,4 @@
-MeteoriteDocuments = new Meteor.Collection("meteorite")
+Changes = new Meteor.Collection("changes")
 
 writeFile = (filename, content) ->
   __meteor_bootstrap__.require('fs').writeFile(filename, content, 'utf8', (err) ->
@@ -35,11 +35,11 @@ class Meteorite
     @default.apply(@, args)
 
 Meteor.publish('code_file', (filename) ->
-  return MeteoriteDocuments.find( 'filename': filename )
+  return Changes.find( 'filename': filename )
 )
 
 Meteor.publish('code_filenames', ->
-  return MeteoriteDocuments.find( {}, { fields: {filename: 1} } )
+  return Changes.find( {}, { fields: {filename: 1} } )
 )
 
 Meteor.startup( ->
