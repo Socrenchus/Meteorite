@@ -60,8 +60,7 @@ init = ->
     extraKeys: {
       "Ctrl-Space": "autocomplete"
       "Esc": "open_file"
-      "Cmd-'s'": "save_file"
-      "Ctrl-'s'": "save_file"
+      "Shift-Enter": "save_file"
     }
     onChange: on_change
   )
