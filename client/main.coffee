@@ -22,70 +22,46 @@ _.extend( Template.file_list,
 
 # Code editor
 
-`function init(filename) {
-  var ta = document.getElementById("ta")
-  var onChangeEnabled = true
-  function onChange(m, evt){
-    // console.log('onChange:', m, evt)
-    while (evt) {
-      if (onChangeEnabled) {
-        Changes.insert({'filename': filename, uuid: uuid, date: new Date(), text: evt.text, from: evt.from, to: evt.to})
-      }
-      //exec(evt, mirror)
-      evt = evt.next
-    }
-  }
-  m = CodeMirror.fromTextArea(ta, {mode: "text/x-coffeescript", tabMode: "indent", electricChars: false, indentWithTabs: false, tabSize: 2, smartIndent: false, onChange: onChange});
-  m.focus();
-  m.setSelection({line:0, ch:0}, {line:m.lineCount(), ch:0});
-  var changes = Changes.find({'filename':filename}, {sort: {date: 1}})
-  // execute the modification on the mirror
-  function exec(evt, mirror) {
+init = (filename) ->
+  ta = document.getElementById("ta")
+  onChangeEnabled = true
+  onChange = (m, evt) ->
+    # tron.log('onChange:', m, evt)
+    while evt
+      Changes.insert(
+        filename: filename
+        uuid: uuid
+        date: new Date()
+        text: evt.text
+        from: evt.from
+        to: evt.to
+      )
+  m = CodeMirror.fromTextArea(ta,{mode: "text/x-coffeescript", electricChars: false, indentWithTabs: false, tabSize: 2, smartIndent: true, lineNumbers: true, onChangeEnabled: onChange})
+  m.focus()
+  m.setSelection({line:0, ch:0}, {line:m.lineCount(), ch:0})
+  changes = Changes.find({'filename':filename}, {sort: {date: 1}})
+
+  # execute the modification on the mirror
+  exec = (evt, mirror) ->
     onChangeEnabled = false
-    try {
-      if (evt.uuid != uuid) {
+    try
+      unless evt.uuid is uuid
         mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
-      }
-    } finally {
+    finally
       Meteor.call('save_file_text', filename, m.getValue())
       onChangeEnabled = true
-    }
-  }
-  window.reset_textarea = function(skip){
-    onChangeEnabled = false
-    try {
-      m.replaceRange('', {line: 0, ch: 0}, {line:m.lineCount(), ch:0})
-      if (!skip) {
-        Changes.remove({'filename':filename})
-        Changes.insert({'filename':filename, uuid: uuid, date: new Date(), action: 'reset'})
-      }
-    } finally {
-      onChangeEnabled = true
-    }
-  }
-  var date = 0
-  changes.forEach(function(ch) {
-    date = Math.max(new Date(ch.date).getTime(), date)
-    if (ch.action == 'reset') {
-      window.reset_textarea()
-    } else {
-      exec(ch, m)
-    }
-  })
 
-  if (date === 0) date = undefined;
-  Changes.find({date: {$gt: new Date(date)}, 'filename':filename, uuid: {$ne: uuid}}).observe({
-    added: function (ch) {
-      if (uuid != ch.uuid && filename == ch.filename) {
-        if (ch.action == 'reset') {
-          window.reset_textarea(true)
-        } else {
-          exec(ch, m)
-        }
-      }
-    }
-  })
-}`
+  date = 0
+  changes.forEach( (ch) ->
+    date = Math.max(new Date(ch.date).getTime(), date)
+    exec(ch, m)
+  )
+
+  date = `undefined` if date is 0
+  Changes.find({date: {$gt: new Date(date)}, 'filename':filename, uuid: {$ne: uuid}}).observe(
+    added: (ch) ->
+        exec(ch, m) if (uuid != ch.uuid && filename == ch.filename)
+  )
 
 # Backbone router
 class Router extends Backbone.Router
