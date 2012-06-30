@@ -95,6 +95,7 @@ reload = ->
 class Router extends Backbone.Router
   routes:
     "edit*path": "edit_file"
+    "delete*path": "delete_file"
     "run/:branchname": "run_branch"
 
   edit_file: (path) ->
@@ -107,6 +108,9 @@ class Router extends Backbone.Router
       $('#filelist').hide()
       $('#editor').show()
     )
+  
+  delete_file: (path) ->
+    Meteor.call( 'delete_file', root_path + path )
 
     
 

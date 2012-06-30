@@ -48,3 +48,7 @@ textarea {
 #filelist li a:hover {
   background: #ffffcc;
 }
+
+#delete {
+  float: right;
+}

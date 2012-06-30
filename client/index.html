@@ -64,7 +64,10 @@
   <div id='filelist'>
   <ul>
   {{#each files}}
-    <li><a href='/edit/{{filename}}'>{{filename}}</a></li>
+    <li>
+      <a href='/edit/{{filename}}'>{{filename}}</a>
+      <a id='delete' href='/delete/{{filename}}'>x</a>
+    </li>
   {{/each}}
   </ul>
   </div>

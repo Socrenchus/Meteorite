@@ -30,12 +30,14 @@ Meteor.publish('code_filenames', ->
         uniq[doc.filename] = doc._id
         @set('files', doc._id, {'filename': doc.filename[root_path.length+1..]})
         @flush()
+    removed: (doc, idx) =>
+      @unset( 'files', doc._id, ['filename'] )
   )
   
   @onStop = =>
     handle.stop()
     for k, v in uniq
-      @unset( 'files', v, [filename] )
+      @unset( 'files', v, ['filename'] )
 )
 
 Meteor.methods(
@@ -51,4 +53,8 @@ Meteor.methods(
     else
       mime = __meteor_bootstrap__.require('mime')
       return mime.lookup(filename)
+  delete_file: (filename) ->
+    deleteFile(filename)
+    for file in Changes.find(filename: filename).fetch()
+      Changes.remove(file._id)
 )

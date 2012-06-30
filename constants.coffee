@@ -1,1 +1,1 @@
-root_path = '../Socrenchus'
+root_path = '../Meteorite'
