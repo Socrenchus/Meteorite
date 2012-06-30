@@ -1,8 +1,8 @@
 # Collections
 Changes = new Meteor.Collection("changes")
+Files = new Meteor.Collection("files")
 
 uuid = Meteor.uuid()
-Session.set( 'show_file_list', true)
 
 # Subscriptions
 Meteor.subscribe( 'code_filenames' )
@@ -13,13 +13,9 @@ Meteor.autosubscribe( ->
 # Templates
 ##
 _.extend( Template.file_list,
-  show: -> Session.get('show_file_list')
+  show: -> true
   files: ->
-    results = Changes.find( {}, { fields: {filename: 1} } ).fetch()
-    uniq = {}
-    for r in results
-      uniq[r.filename[root_path.length+1..]] = true
-    return ( {filename: k} for k of uniq )
+    return Files.find()
 )
 
 # Code editor
@@ -108,8 +104,8 @@ class Router extends Backbone.Router
       mimetype = r
       _.once( init )()
       reload()
-      $(ta).parent().show()
-      Session.set('show_file_list', false)
+      $('#filelist').hide()
+      $('#editor').show()
     )
 
     

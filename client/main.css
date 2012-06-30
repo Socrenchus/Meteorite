@@ -6,9 +6,9 @@ body {
   height: 100%;
 }
 
-form {
-  display: none;
+#editor {
   height: 100%;
+  display: none;
 }
 
 textarea {
@@ -32,4 +32,19 @@ textarea {
 
 .CodeMirror-scroll {
   height: 100% !important;
+}
+
+#filelist ul {
+  list-style-type: none;
+  width: 400px;
+}
+
+#filelist li {
+  border: 1px dotted #999;
+  border-width: 1px 0;
+  margin: 5px 0;
+}
+
+#filelist li a:hover {
+  background: #ffffcc;
 }

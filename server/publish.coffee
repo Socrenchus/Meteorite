@@ -22,14 +22,20 @@ Meteor.publish('code_file', (filename) ->
 )
 
 Meteor.publish('code_filenames', ->
-  uuid = Meteor.uuid()
   uniq = {}
   
-  Changes.find( {}, { fields: {filename: 1} } ).observe(
+  handle = Changes.find( {}, { fields: {filename: 1} } ).observe(
     added: (doc, idx) =>
-      #@set("changes", uuid, )
-      #@flush()
+      unless doc.filename of uniq
+        uniq[doc.filename] = doc._id
+        @set('files', doc._id, {'filename': doc.filename[root_path.length+1..]})
+        @flush()
   )
+  
+  @onStop = =>
+    handle.stop()
+    for k, v in uniq
+      @unset( 'files', v, [filename] )
 )
 
 Meteor.methods(

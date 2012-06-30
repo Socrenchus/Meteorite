@@ -56,16 +56,16 @@
 </head>
 
 <body>
-  <form><textarea id="code" name="code"></textarea></form>
+  <form id='editor'><textarea id="code" name="code"></textarea></form>
   {{> file_list}}
 </body>
 
 <template name="file_list">
-  {{#if show}}
+  <div id='filelist'>
   <ul>
   {{#each files}}
     <li><a href='/edit/{{filename}}'>{{filename}}</a></li>
   {{/each}}
   </ul>
-  {{/if}}
+  </div>
 </template>
