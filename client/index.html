@@ -56,19 +56,37 @@
 </head>
 
 <body>
-  <form id='editor'><textarea id="code" name="code"></textarea></form>
-  {{> file_list}}
+  <table>
+    <tr>
+      <td id="filelist">
+        {{> file_list}}
+      </td>
+      <td>
+        <form id='editor'><textarea id="code" name="code"></textarea></form>
+      </td>
+    </tr>
+  </table>
 </body>
 
 <template name="file_list">
-  <div id='filelist'>
-  <ul>
+  <ul class='tree'>
   {{#each files}}
-    <li>
-      <a href='/edit/{{filename}}'>{{filename}}</a>
-      <a id='delete' href='/delete/{{filename}}'>x</a>
-    </li>
+    {{> dir}}
   {{/each}}
   </ul>
-  </div>
+</template>
+<template name="dir">
+
+    <li class='{{classes}}'>
+      <a id='file' {{#unless children}}href='/edit/{{path}}'{{/unless}}>{{name}}</a>
+      <!--<a id='delete' href='#'>x</a>-->
+    </li>
+    {{#if expanded}}
+    <ul>
+    {{#each children}}
+      {{> dir}}
+    {{/each}}
+    </ul>
+    {{/if}}
+
 </template>

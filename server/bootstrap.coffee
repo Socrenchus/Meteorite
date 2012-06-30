@@ -22,6 +22,8 @@ Meteor.startup( ->
       hidden = false
       for a in file.split('/')
         hidden ||= (a[0] == '.' && a[1] != '.')
+      mimetype = Meteor.call('get_mime_type', file)
+      hidden ||= not (mimetype.split('/')[0] is 'text')
       content = readFile(file).split('\n')
       Changes.insert(
         filename: file

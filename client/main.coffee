@@ -13,9 +13,29 @@ Meteor.autosubscribe( ->
 # Templates
 ##
 _.extend( Template.file_list,
-  show: -> true
   files: ->
-    return Files.find()
+    return a.children for a in Files.find().fetch()
+  events: {
+    'click #delete': (event) ->
+      file = $(event.target).parent().children('#file').html()
+      Meteor.call( 'delete_file', root_path + file )
+  }
+)
+
+_.extend( Template.dir,
+  name: -> @name
+  path: -> @path
+  children: -> @children
+  expanded: -> Session.get(@path)
+  events: {
+    'click #file': (event) ->
+      if not event.isImmediatePropagationStopped()
+        expanded = Session.get(@path)
+        expanded ?= false
+        Session.set(@path, !expanded)
+        tron.log expanded
+        event.stopImmediatePropagation()
+  }
 )
 
 # Code editor
@@ -64,38 +84,43 @@ init = ->
   m.setSelection({line:0, ch:0}, {line:m.lineCount(), ch:0})
 
 reload = ->
-  changes = Changes.find({'filename':filename}, {sort: {date: 1}})
+  switch mimetype.split('/')[0]
+    when 'text'
+      changes = Changes.find({'filename':filename}, {sort: {date: 1}})
   
-  for n in CodeMirror.listMIMEs()
-    if mimetype?
-      m.setOption('mode', n.mode) if n.mime is mimetype
+      for n in CodeMirror.listMIMEs()
+        if mimetype?
+          m.setOption('mode', n.mode) if n.mime is mimetype
     
-  # execute the modification on the mirror
-  exec = (evt, mirror) ->
-    on_change_enabled = false
-    try
-      if (evt.uuid != uuid)
-        mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
-    finally
-      on_change_enabled = true
+      # execute the modification on the mirror
+      exec = (evt, mirror) ->
+        on_change_enabled = false
+        try
+          if (evt.uuid != uuid)
+            mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
+        finally
+          on_change_enabled = true
 
-  date = 0
-  changes.forEach( (ch) ->
-    date = Math.max(new Date(ch.date).getTime(), date)
-    exec(ch, m)
-  )
+      date = 0
+      changes.forEach( (ch) ->
+        date = Math.max(new Date(ch.date).getTime(), date)
+        exec(ch, m)
+      )
 
-  date = `undefined` if date is 0
-  Changes.find({date: {$gt: new Date(date)}, 'filename':filename, uuid: {$ne: uuid}}).observe(
-    added: (ch) ->
-        exec(ch, m) if (uuid != ch.uuid && filename == ch.filename)
-  )
+      date = `undefined` if date is 0
+      Changes.find({date: {$gt: new Date(date)}, 'filename':filename, uuid: {$ne: uuid}}).observe(
+        added: (ch) ->
+            exec(ch, m) if (uuid != ch.uuid && filename == ch.filename)
+      )
+      $('#editor').show()
+    when 'image'
+      tron.warn('Meteorite does not currently support images.')
 
 # Backbone router
 class Router extends Backbone.Router
   routes:
     "edit*path": "edit_file"
-    "delete*path": "delete_file"
+    "dir*path": "open_folder"
     "run/:branchname": "run_branch"
 
   edit_file: (path) ->
@@ -105,12 +130,10 @@ class Router extends Backbone.Router
       mimetype = r
       _.once( init )()
       reload()
-      $('#filelist').hide()
-      $('#editor').show()
     )
   
-  delete_file: (path) ->
-    Meteor.call( 'delete_file', root_path + path )
+  open_folder: (path) ->
+    tron.log 'ok'
 
     
 

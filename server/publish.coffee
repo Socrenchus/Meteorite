@@ -22,22 +22,55 @@ Meteor.publish('code_file', (filename) ->
 )
 
 Meteor.publish('code_filenames', ->
-  uniq = {}
+  files =
+    name: 'root'
+    children: []
+  uuid = Meteor.uuid()
+  
+  build_obj = (prev, cur, next, siblings) ->
+    sibs = siblings
+    sibs ?= []
+    result = []
+    
+    for s in sibs
+      if cur is s.name
+        children = s.children
+      else
+        result.push( s )
+    children ?= []
+    new_prev = prev
+    new_prev.push(cur)
+    new_cur = next[0]
+    new_next = next[1..]
+    tron.test( ->
+      return
+      tron.log 'prev:',prev,new_prev
+      tron.log 'cur:', cur, new_cur
+      tron.log 'next:', next, new_next
+      tron.log 'children:', siblings,children
+    )
+    result.push(
+      path: new_prev.join('/')
+      name: cur
+      children: build_obj(new_prev, new_cur, new_next, children) if new_cur?.length > 0
+    )
+    return result
   
   handle = Changes.find( {}, { fields: {filename: 1} } ).observe(
     added: (doc, idx) =>
-      unless doc.filename of uniq
-        uniq[doc.filename] = doc._id
-        @set('files', doc._id, {'filename': doc.filename[root_path.length+1..]})
-        @flush()
+      p = doc.filename[root_path.length..]
+      p = p.split('/')[1..]
+      files.children = build_obj([], p[0], p[1..], files.children)
+      @set('files', uuid, files)
+      @flush()
     removed: (doc, idx) =>
-      @unset( 'files', doc._id, ['filename'] )
+      @rewind()
+      @flush()
   )
   
   @onStop = =>
     handle.stop()
-    for k, v in uniq
-      @unset( 'files', v, ['filename'] )
+    @unset( 'files', uuid, ['files'] )
 )
 
 Meteor.methods(
