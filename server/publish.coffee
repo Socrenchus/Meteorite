@@ -22,12 +22,27 @@ Meteor.publish('code_file', (filename) ->
 )
 
 Meteor.publish('code_filenames', ->
-  return Changes.find( {}, { fields: {filename: 1} } )
+  uuid = Meteor.uuid()
+  uniq = {}
+  
+  Changes.find( {}, { fields: {filename: 1} } ).observe(
+    added: (doc, idx) =>
+      #@set("changes", uuid, )
+      #@flush()
+  )
 )
 
 Meteor.methods(
   save_file_text: (filename, text) ->
     delayedWriteFile( filename, text )
   get_mime_type: (filename) ->
-    return __meteor_bootstrap__.require('mime').lookup(filename)
+    custom =
+      'coffee':'text/x-coffeescript'
+      'styl':'text/css'
+    extension = filename[filename.lastIndexOf('.')+1..]
+    if extension of custom
+      return custom[extension]
+    else
+      mime = __meteor_bootstrap__.require('mime')
+      return mime.lookup(filename)
 )
