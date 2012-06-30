@@ -22,11 +22,9 @@ Meteor.startup( ->
       hidden = false
       for a in file.split('/')
         hidden ||= (a[0] == '.' && a[1] != '.')
-      [content, mimetype] = readFile(file)
-      content = content.split('\n')
+      content = readFile(file).split('\n')
       Changes.insert(
         filename: file
-        mimetype: mimetype
         uuid: Meteor.uuid()
         date: new Date()
         text: content
