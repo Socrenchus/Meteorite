@@ -3,11 +3,12 @@ Changes = new Meteor.Collection("changes")
 Files = new Meteor.Collection("files")
 
 uuid = Meteor.uuid()
+Session.set( 'current_files', [] )
 
 # Subscriptions
 Meteor.subscribe( 'code_filenames' )
 Meteor.autosubscribe( ->
-  Meteor.subscribe( 'code_file', root_path + Session.get( 'current_file' ) )
+  Meteor.subscribe( 'code_file', Session.get( 'current_files' ) )
 )
 
 # Templates
@@ -33,20 +34,19 @@ _.extend( Template.dir,
         expanded = Session.get(@path)
         expanded ?= false
         Session.set(@path, !expanded)
-        Router.navigate('/edit/'+@path, trigger:true)
+        unless @children? and @children.length > 0
+          Router.navigate('/edit/'+@path, trigger:true)
         event.stopImmediatePropagation()
   }
 )
 
 # Code editor
 
-filename = ''
-mimetype = null
-m = ''
 on_change_enabled = true
-ta = null
-init = _.once( ->
-  ta = document.getElementById("code")
+init = (filename, mimetype) ->
+  editor = $('#editor')
+  editor = editor.clone().attr('id', "#{filename.replace(/\//g,'s').replace(/\./g,'d')}").insertAfter(editor)
+  ta = editor.children('#code')[0]
   on_change = (m, evt) ->
     #tron.log('on_change:', m, evt)
     while evt
@@ -82,9 +82,7 @@ init = _.once( ->
   )
   m.focus()
   m.setSelection({line:0, ch:0}, {line:m.lineCount(), ch:0})
-)
 
-reload = ->
   switch mimetype.split('/')[0]
     when 'text'
       changes = Changes.find({'filename':filename}, {sort: {date: 1}})
@@ -97,9 +95,7 @@ reload = ->
         # reset editor
         on_change_enabled = false
         try
-          m.setValue('')
-          m.clearHistory()
-          m.refresh()
+          m.replaceRange('', {line: 0, ch: 0}, {line:m.lineCount(), ch:0})
         finally
           on_change_enabled = true
       reset()
@@ -124,7 +120,8 @@ reload = ->
         added: (ch) ->
             exec(ch, m) if (uuid != ch.uuid && filename == ch.filename)
       )
-      $('#editor').show()
+      m.clearHistory()
+      editor.show()
     when 'image'
       tron.warn('Meteorite does not currently support images.')
 
@@ -134,12 +131,16 @@ class Router extends Backbone.Router
     "edit*path": "edit_file"
 
   edit_file: (path) ->
-    Session.set( 'current_file', path )
+    files = Session.get( 'current_files')
     filename = root_path + path
-    Meteor.call( 'get_mime_type', filename, (e, r) -> 
-      mimetype = r
-      init()
-      reload()
+    Session.set( 'current_files', [filename].concat(files))
+    Meteor.call( 'get_mime_type', filename, (e, r) ->
+      editor = $("##{filename.replace(/\//g,'s').replace(/\./g,'d')}")
+      $('.editor').hide()
+      if editor.length > 0
+        editor.show()
+      else
+        init(filename, r)
     )
 
     

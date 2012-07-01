@@ -11,7 +11,7 @@ table {
   height: 100%;
 }
 
-#editor {
+.editor {
   height: 100%;
   display: none;
 }

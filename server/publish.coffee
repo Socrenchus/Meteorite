@@ -17,8 +17,8 @@ deleteFile = (filename) ->
       tron.error(err)
   )
 
-Meteor.publish('code_file', (filename) ->
-  return Changes.find( 'filename': filename )
+Meteor.publish('code_file', (file_list) ->
+  return Changes.find( {'filename': {$in: file_list}} )
 )
 
 Meteor.publish('code_filenames', ->
