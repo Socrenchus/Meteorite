@@ -33,7 +33,7 @@ _.extend( Template.dir,
         expanded = Session.get(@path)
         expanded ?= false
         Session.set(@path, !expanded)
-        tron.log expanded
+        Router.navigate('/edit/'+@path, trigger:true)
         event.stopImmediatePropagation()
   }
 )
@@ -45,7 +45,7 @@ mimetype = null
 m = ''
 on_change_enabled = true
 ta = null
-init = ->
+init = _.once( ->
   ta = document.getElementById("code")
   on_change = (m, evt) ->
     #tron.log('on_change:', m, evt)
@@ -82,6 +82,7 @@ init = ->
   )
   m.focus()
   m.setSelection({line:0, ch:0}, {line:m.lineCount(), ch:0})
+)
 
 reload = ->
   switch mimetype.split('/')[0]
@@ -91,6 +92,17 @@ reload = ->
       for n in CodeMirror.listMIMEs()
         if mimetype?
           m.setOption('mode', n.mode) if n.mime is mimetype
+          
+      reset = ->
+        # reset editor
+        on_change_enabled = false
+        try
+          m.setValue('')
+          m.clearHistory()
+          m.refresh()
+        finally
+          on_change_enabled = true
+      reset()
     
       # execute the modification on the mirror
       exec = (evt, mirror) ->
@@ -100,7 +112,7 @@ reload = ->
             mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
         finally
           on_change_enabled = true
-
+      
       date = 0
       changes.forEach( (ch) ->
         date = Math.max(new Date(ch.date).getTime(), date)
@@ -120,20 +132,15 @@ reload = ->
 class Router extends Backbone.Router
   routes:
     "edit*path": "edit_file"
-    "dir*path": "open_folder"
-    "run/:branchname": "run_branch"
 
   edit_file: (path) ->
     Session.set( 'current_file', path )
     filename = root_path + path
     Meteor.call( 'get_mime_type', filename, (e, r) -> 
       mimetype = r
-      _.once( init )()
+      init()
       reload()
     )
-  
-  open_folder: (path) ->
-    tron.log 'ok'
 
     
 

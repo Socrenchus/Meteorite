@@ -78,7 +78,7 @@
 <template name="dir">
 
     <li class='{{classes}}'>
-      <a id='file' {{#unless children}}href='/edit/{{path}}'{{/unless}}>{{name}}</a>
+      <a id='file'>{{name}}</a>
       <!--<a id='delete' href='#'>x</a>-->
     </li>
     {{#if expanded}}
