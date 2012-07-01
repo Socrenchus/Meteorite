@@ -59,26 +59,31 @@ init = (filename, mimetype) ->
         to: evt.to
       ) if on_change_enabled
       evt = evt.next
+  on_key_event = (m, evt) ->
+    switch evt.which
+      when 9
+        if evt.type is 'keyup'
+          m.indentSelection()
+      when 83
+        if evt.metaKey or evt.ctrlKey
+          evt.stop()
+          Meteor.call('save_file_text', filename, m.getValue())
+  CodeMirror.commands.none = (cm) ->    
   CodeMirror.commands.autocomplete = (cm) ->
     CodeMirror.simpleHint(cm, CodeMirror.javascriptHint)
-  CodeMirror.commands.open_file = (cm) ->
-    window.location = '/'
-  CodeMirror.commands.save_file = (cm) ->
-    Meteor.call('save_file_text', filename, m.getValue())
   CodeMirror.modeURL = '/mode/%N/%N.js'
   m = CodeMirror.fromTextArea(ta,
     electricChars: false
     indentWithTabs: false
-    tabSize: 2
-    smartIndent: true
+    indentUnit: 2
+    smartIndent: false
     lineNumbers: true
-    autoFocus: true
     extraKeys: {
       "Ctrl-Space": "autocomplete"
-      "Esc": "open_file"
-      "Shift-Enter": "save_file"
+      "Tab": 'none'
     }
     onChange: on_change
+    onKeyEvent: on_key_event
   )
   m.focus()
   m.setSelection({line:0, ch:0}, {line:m.lineCount(), ch:0})
