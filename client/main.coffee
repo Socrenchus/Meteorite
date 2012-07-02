@@ -61,14 +61,11 @@ init = (filename, mimetype) ->
       evt = evt.next
   on_key_event = (m, evt) ->
     switch evt.which
-      when 9
-        if evt.type is 'keyup'
-          m.indentSelection()
-      when 83
+      when 83 # 's' key
         if evt.metaKey or evt.ctrlKey
           evt.stop()
           Meteor.call('save_file_text', filename, m.getValue())
-  CodeMirror.commands.none = (cm) ->    
+  CodeMirror.commands.indent = (cm) -> cm.indentSelection()
   CodeMirror.commands.autocomplete = (cm) ->
     CodeMirror.simpleHint(cm, CodeMirror.javascriptHint)
   CodeMirror.modeURL = '/mode/%N/%N.js'
@@ -80,7 +77,7 @@ init = (filename, mimetype) ->
     lineNumbers: true
     extraKeys: {
       "Ctrl-Space": "autocomplete"
-      "Tab": 'none'
+      "Tab": 'indent'
     }
     onChange: on_change
     onKeyEvent: on_key_event
