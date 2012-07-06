@@ -32,6 +32,7 @@ Meteor.startup( ->
         text: content
         from: {ch: 0, line: 0}
         to: {ch: 0, line: 0}
+        rewrite: true
       ) unless hidden
     
 )

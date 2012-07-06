@@ -7,9 +7,6 @@ Session.set( 'current_files', [] )
 
 # Subscriptions
 Meteor.subscribe( 'code_filenames' )
-Meteor.autosubscribe( ->
-  Meteor.subscribe( 'code_file', Session.get( 'current_files' ) )
-)
 
 # Templates
 ##
@@ -47,17 +44,32 @@ init = (filename, mimetype) ->
   editor = $('#editor')
   editor = editor.clone().attr('id', "#{filename.replace(/\//g,'s').replace(/\./g,'d')}").insertAfter(editor)
   ta = editor.children('#code')[0]
+  chars_to_rewrite = 0
   on_change = (m, evt) ->
     #tron.log('on_change:', m, evt)
     while evt
-      Changes.insert(
+      obj =
         filename: filename
         uuid: uuid
         date: new Date()
         text: evt.text
         from: evt.from
         to: evt.to
-      ) if on_change_enabled
+      contents = m.getValue().split('\n')
+      if chars_to_rewrite <= 0
+        last_line = m.lineCount()-1
+        last_ch = contents[last_line].length
+        obj.text = contents
+        obj.from = {line:0, ch:0}
+        obj.to = {line:last_line, ch:last_ch}
+        obj.rewrite = true
+        chars_to_rewrite = m.getValue().length
+      else
+        changed = contents[evt.from.line...evt.to.line].join('').length
+        changed -= (evt.from.ch - evt.to.ch)
+        changed ||= 1
+        chars_to_rewrite -= 2 * changed
+      Changes.insert( obj ) if on_change_enabled
       evt = evt.next
   on_key_event = (m, evt) ->
     switch evt.which
@@ -87,27 +99,19 @@ init = (filename, mimetype) ->
 
   switch mimetype.split('/')[0]
     when 'text'
-      changes = Changes.find({'filename':filename}, {sort: {date: 1}})
-  
+      last_rewrite = Changes.findOne({'filename':filename,'rewrite':true}, {sort: {date: -1}})
+      last_rewrite = last_rewrite.date
+      changes = Changes.find({'filename':filename,'date':{'$gte':last_rewrite}}, {sort: {date: 1}}).fetch()
+      
       for n in CodeMirror.listMIMEs()
         if mimetype?
           m.setOption('mode', n.mode) if n.mime is mimetype
-          
-      reset = ->
-        # reset editor
-        on_change_enabled = false
-        try
-          m.replaceRange('', {line: 0, ch: 0}, {line:m.lineCount(), ch:0})
-        finally
-          on_change_enabled = true
-      reset()
     
       # execute the modification on the mirror
       exec = (evt, mirror) ->
         on_change_enabled = false
         try
-          if (evt.uuid != uuid)
-            mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
+          mirror.replaceRange(evt.text.join('\n'), evt.from, evt.to)
         finally
           on_change_enabled = true
       
@@ -124,6 +128,7 @@ init = (filename, mimetype) ->
       )
       m.clearHistory()
       editor.show()
+      m.refresh()
     when 'image'
       tron.warn('Meteorite does not currently support images.')
 
@@ -142,10 +147,10 @@ class Router extends Backbone.Router
       if editor.length > 0
         editor.show()
       else
-        init(filename, r)
+        Meteor.subscribe( 'code_file', filename, ->
+          init(filename, r)
+        )
     )
-
-    
 
 Router = new Router()
 Meteor.startup( ->
