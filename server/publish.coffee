@@ -56,21 +56,27 @@ Meteor.publish('code_filenames', ->
     )
     return result
   
+  no_flush = true
   handle = Changes.find( {}, { fields: {filename: 1} } ).observe(
     added: (doc, idx) =>
       p = doc.filename[root_path.length..]
       p = p.split('/')[1..]
       files.children = build_obj([], p[0], p[1..], files.children)
       @set('files', uuid, files)
-      @flush()
+      unless no_flush
+        @flush()
     removed: (doc, idx) =>
       @rewind()
       @flush()
   )
+  no_flush = false
+  @flush()
   
   @onStop = =>
     handle.stop()
     @unset( 'files', uuid, ['files'] )
+  
+  return null
 )
 
 Meteor.methods(
